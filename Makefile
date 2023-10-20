@@ -9,7 +9,7 @@ FRAMEWORKS = OpenGL Cocoa IOKit
 format:
 	clang-format -i src/main.c
 
-main: src/main.o lib/libglfw3.a
+main: lib/libglfw3.a src/main.o
 	cc $< -o main -Iinclude -Llib $(addprefix -l,$(LIBRARIES)) $(addprefix -framework ,$(FRAMEWORKS))
 
 launch: main
