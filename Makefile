@@ -1,12 +1,11 @@
-CFLAGS = 
-
 GLFW_VERSION = 3.3.8
 
-LIBRARIES = glfw3
-LIB_FLAGS = $(addprefix -l,$(LIBRARIES))
-
+LDFLAGS = -Llib -lglfw3
+ifeq ($(shell uname -s),Linux)
+LDFLAGS += $(addprefix -l,GL X11 pthread Xrandr Xi dl)
+endif
 ifeq ($(shell uname -s),Darwin)
-CFLAGS += $(addprefix -framework ,OpenGL Cocoa IOKit)
+LDFLAGS += $(addprefix -framework ,OpenGL Cocoa IOKit)
 endif
 
 %.o: %.c include/GLFW
@@ -16,7 +15,7 @@ format:
 	clang-format -i src/main.c
 
 main: lib/libglfw3.a src/main.o
-	cc src/main.o -o $@ -Iinclude -Llib $(LIB_FLAGS) $(CFLAGS)
+	cc src/main.o -o $@ -Iinclude $(LDFLAGS)
 
 launch: main
 	./main
