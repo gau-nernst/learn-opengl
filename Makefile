@@ -12,8 +12,8 @@ FRAMEWORK_FLAGS = $(addprefix -framework ,$(FRAMEWORKS))
 format:
 	clang-format -i src/main.c
 
-main: src/main.o lib/libglfw3.a
-	cc $< -o $@ -Iinclude -Llib $(LIB_FLAGS) $(FRAMEWORK_FLAGS)
+main: lib/libglfw3.a src/main.o
+	cc src/main.o -o $@ -Iinclude -Llib $(LIB_FLAGS) $(FRAMEWORK_FLAGS)
 
 launch: main
 	./main
