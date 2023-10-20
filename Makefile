@@ -15,7 +15,7 @@ format:
 	clang-format -i src/main.c
 
 main: lib/libglfw3.a src/main.o
-	cc src/main.o -o $@ -Iinclude $(LDFLAGS)
+	cc src/main.o -o $@ $(LDFLAGS)
 
 launch: main
 	./main
