@@ -19,7 +19,7 @@ launch: main
 	./main
 
 glfw-$(GLFW_VERSION):
-	wget https://github.com/glfw/glfw/releases/download/$(GLFW_VERSION)/glfw-$(GLFW_VERSION).zip
+	wget -nv https://github.com/glfw/glfw/releases/download/$(GLFW_VERSION)/glfw-$(GLFW_VERSION).zip
 	unzip glfw-$(GLFW_VERSION).zip
 	rm glfw-$(GLFW_VERSION).zip
 
