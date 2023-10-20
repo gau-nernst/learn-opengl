@@ -1,10 +1,13 @@
+CFLAGS = 
+
 GLFW_VERSION = 3.3.8
 
 LIBRARIES = glfw3
 LIB_FLAGS = $(addprefix -l,$(LIBRARIES))
 
-FRAMEWORKS = OpenGL Cocoa IOKit
-FRAMEWORK_FLAGS = $(addprefix -framework ,$(FRAMEWORKS))
+ifeq ($(shell uname -s),Darwin)
+CFLAGS += $(addprefix -framework ,OpenGL Cocoa IOKit)
+endif
 
 %.o: %.c include/GLFW
 	cc -c $< -o $@ -Iinclude
@@ -13,7 +16,7 @@ format:
 	clang-format -i src/main.c
 
 main: lib/libglfw3.a src/main.o
-	cc src/main.o -o $@ -Iinclude -Llib $(LIB_FLAGS) $(FRAMEWORK_FLAGS)
+	cc src/main.o -o $@ -Iinclude -Llib $(LIB_FLAGS) $(CFLAGS)
 
 launch: main
 	./main
