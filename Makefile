@@ -1,25 +1,35 @@
 GLFW_VERSION = 3.3.8
 
-LIBRARIES = glfw3
-FRAMEWORKS = OpenGL Cocoa IOKit
+LDFLAGS = -Llib -lglfw3
+ifeq ($(shell uname -s),Linux)
+LDFLAGS += $(addprefix -l,m GL X11 pthread Xrandr Xi dl)
+endif
+ifeq ($(shell uname -s),Darwin)
+LDFLAGS += $(addprefix -framework ,OpenGL Cocoa IOKit)
+endif
 
-%.o: %.c
+%.o: %.c include/GLFW
 	cc -c $< -o $@ -Iinclude
 
 format:
 	clang-format -i src/main.c
 
-main: src/main.o lib/libglfw3.a
-	cc $< -o main -Iinclude -Llib $(addprefix -l,$(LIBRARIES)) $(addprefix -framework ,$(FRAMEWORKS))
+main: lib/libglfw3.a src/main.o
+	cc src/main.o -o $@ $(LDFLAGS)
 
 launch: main
 	./main
 
-glfw-$(GLFW_VERSION).zip:
-	wget https://github.com/glfw/glfw/releases/download/$(GLFW_VERSION)/glfw-$(GLFW_VERSION).zip
+glfw-$(GLFW_VERSION):
+	wget -nv https://github.com/glfw/glfw/releases/download/$(GLFW_VERSION)/glfw-$(GLFW_VERSION).zip
+	unzip -qq glfw-$(GLFW_VERSION).zip
+	rm glfw-$(GLFW_VERSION).zip
 
-lib/libglfw3.a: glfw-$(GLFW_VERSION).zip
-	unzip glfw-$(GLFW_VERSION).zip
+lib/libglfw3.a: glfw-$(GLFW_VERSION)
 	cd glfw-$(GLFW_VERSION) && cmake -S . -B build && make -C build
+	mkdir -p lib
 	cp glfw-$(GLFW_VERSION)/build/src/libglfw3.a lib
-	cp -r glfw-$(GLFW_VERSION)/include/* include
+
+include/GLFW: glfw-$(GLFW_VERSION)
+	mkdir -p include
+	cp -r glfw-$(GLFW_VERSION)/include/GLFW include/

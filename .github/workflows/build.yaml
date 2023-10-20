@@ -1,0 +1,20 @@
+name: Build
+on:
+  push:
+    paths-ignore:
+      - README.md
+      - .gitignore
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: make main
+
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt install xorg-dev
+      - run: make main
