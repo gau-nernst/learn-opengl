@@ -2,7 +2,7 @@ GLFW_VERSION = 3.3.8
 
 LDFLAGS = -Llib -lglfw3
 ifeq ($(shell uname -s),Linux)
-LDFLAGS += $(addprefix -l,GL X11 pthread Xrandr Xi dl)
+LDFLAGS += $(addprefix -l,m GL X11 pthread Xrandr Xi dl)
 endif
 ifeq ($(shell uname -s),Darwin)
 LDFLAGS += $(addprefix -framework ,OpenGL Cocoa IOKit)
