@@ -1,9 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-static unsigned int CompileShader(unsigned int type, const char* source) {
+static unsigned int CompileShader(unsigned int type, const char *source) {
   unsigned int id = glCreateShader(type);
   glShaderSource(id, 1, &source, NULL);
   glCompileShader(id);
@@ -13,7 +13,7 @@ static unsigned int CompileShader(unsigned int type, const char* source) {
   if (result == GL_FALSE) {
     int length;
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-    char* message = malloc(length * sizeof(char));
+    char *message = malloc(length * sizeof(char));
     glGetShaderInfoLog(id, length, &length, message);
     fprintf(stderr, "Failed to compile shader\n");
     fprintf(stderr, "%s\n", message);
@@ -25,7 +25,7 @@ static unsigned int CompileShader(unsigned int type, const char* source) {
   return id;
 }
 
-static unsigned int CreateShader(const char* vertexShader, const char* fragmentShader) {
+static unsigned int CreateShader(const char *vertexShader, const char *fragmentShader) {
   unsigned int program = glCreateProgram();
   unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
   unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
@@ -70,9 +70,9 @@ int main(void) {
   }
 
   float positions[] = {
-    -0.5f, -0.5f,
-    0.0f, 0.0f,
-    0.5f, -0.5f,
+      -0.5f, -0.5f, //
+      0.0f,  0.0f,  //
+      0.5f,  -0.5f,
   };
 
   unsigned int buffer, vao;
@@ -84,20 +84,18 @@ int main(void) {
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
 
-  char* vertexShader = 
-    "#version 330 core\n"
-    "\n"
-    "layout(location=0) in vec4 position;"  // index of the attribute = 0
-    "void main() {\n"
-    "  gl_Position = position;\n"
-    "}\n";
-  char* fragmentShader = 
-    "#version 330 core\n"
-    "\n"
-    "layout(location=0) out vec4 color;"  // index of the attribute = 0
-    "void main() {\n"
-    "  color = vec4(1.0, 0.0, 0.0, 1.0);\n"
-    "}\n";
+  char *vertexShader = "#version 330 core\n"
+                       "\n"
+                       "layout(location=0) in vec4 position;" // index of the attribute = 0
+                       "void main() {\n"
+                       "  gl_Position = position;\n"
+                       "}\n";
+  char *fragmentShader = "#version 330 core\n"
+                         "\n"
+                         "layout(location=0) out vec4 color;" // index of the attribute = 0
+                         "void main() {\n"
+                         "  color = vec4(1.0, 0.0, 0.0, 1.0);\n"
+                         "}\n";
   unsigned int shader = CreateShader(vertexShader, fragmentShader);
   glUseProgram(shader);
 
