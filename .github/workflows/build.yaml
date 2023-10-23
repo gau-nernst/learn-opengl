@@ -10,15 +10,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          make glfw
-          make main
+      - run: make main
 
   build-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install xorg-dev
-      - run: |
-          make glfw
-          make main
+      - run: make main
