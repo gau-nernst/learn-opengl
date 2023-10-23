@@ -10,7 +10,7 @@
 
 typedef unsigned int uint;
 
-#define assert(condition, ...)                                                                                         \
+#define ASSERT(condition, ...)                                                                                         \
   if (!(condition)) {                                                                                                  \
     fprintf(stderr, ##__VA_ARGS__);                                                                                    \
     fprintf(stderr, "\n");                                                                                             \
@@ -24,7 +24,7 @@ typedef unsigned int uint;
     while ((error = glGetError())) {                                                                                   \
       fprintf(stderr, "[OpenGL Error] (%X)\n", error);                                                                 \
     }                                                                                                                  \
-    assert(error == GL_NO_ERROR, "");                                                                                  \
+    ASSERT(error == GL_NO_ERROR, "");                                                                                  \
   }
 
 typedef struct Vertex {
@@ -163,23 +163,23 @@ static uint create_shader_program(const char *vertexShader, const char *fragment
 
 static uint shader_from_file(const char *path) {
   FILE *f = fopen(path, "r");
-  assert(f != NULL, "Unable to open %s\n", path);
-  assert(fseek(f, 0, SEEK_END) == 0, "Unable to seek to end");
+  ASSERT(f != NULL, "Unable to open %s\n", path);
+  ASSERT(fseek(f, 0, SEEK_END) == 0, "Unable to seek to end");
   long size = ftell(f);
-  assert(size != -1, "Error");
+  ASSERT(size != -1, "Error");
 
   char *source = malloc(sizeof(char) * (size + 1));
-  assert(fseek(f, 0, SEEK_SET) == 0, "Unable to seek to start");
+  ASSERT(fseek(f, 0, SEEK_SET) == 0, "Unable to seek to start");
   fread(source, sizeof(char), size, f);
   source[size + 1] = '\0';
 
   char vertex_tag[] = "#shader vertex\n";
   char *vertex = strstr(source, vertex_tag);
-  assert(vertex != NULL, "Can't find vertex shader in shader file");
+  ASSERT(vertex != NULL, "Can't find vertex shader in shader file");
 
   char fragment_tag[] = "#shader fragment\n";
   char *fragment = strstr(source, fragment_tag);
-  assert(fragment != NULL, "Can't find fragment shader in shader file");
+  ASSERT(fragment != NULL, "Can't find fragment shader in shader file");
 
   memset(vertex, 0, sizeof(vertex_tag) - 1);
   vertex += sizeof(vertex_tag) - 1;
