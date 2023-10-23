@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define STBI_ASSERT(x)
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "stb_image.h"
 
 typedef unsigned int uint;
 
@@ -64,11 +65,11 @@ int main(void) {
   };
 
   float texture_coords[] = {
-    0.0f, 0.0f, //
-    1.0f, 0.0f, //
-    0.5f, 1.0f, //
+      0.0f, 0.0f, //
+      1.0f, 0.0f, //
+      0.5f, 1.0f, //
   };
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); // not sure why it's S and T 
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); // not sure why it's S and T
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // upsample cannot use mipmap

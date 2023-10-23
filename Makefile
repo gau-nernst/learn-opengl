@@ -1,6 +1,6 @@
 GLFW_VERSION = 3.3.8
 
-CFLAGS += -Iinclude
+CFLAGS += -Iinclude -Wall
 
 LDFLAGS += -Llib
 LDLIBS += -lglfw3
