@@ -23,6 +23,11 @@ typedef unsigned int uint;
     assert(error == GL_NO_ERROR, "");                                                                                  \
   }
 
+typedef struct Vertex {
+  float position[2];
+  float color[3];
+} Vertex;
+
 static uint compile_shader(uint type, const char *source);
 static uint create_shader_program(const char *vertexShader, const char *fragmentShader);
 static uint shader_from_file(const char *path);
@@ -49,7 +54,7 @@ int main(void) {
     return -1;
   }
 
-  float vertices[] = {
+  Vertex vertices[] = {
       -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, //
       -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, //
       0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, //
@@ -61,22 +66,20 @@ int main(void) {
 
   GL_CALL(glGenBuffers(1, &VBO));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-  GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) * sizeof(float), vertices, GL_STATIC_DRAW));
+  GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
 
   // position attribute
   GL_CALL(glEnableVertexAttribArray(0));
-  GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertices) * sizeof(float), (void *)0));
+  GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0));
 
   // color attribute
   GL_CALL(glEnableVertexAttribArray(1));
-  GL_CALL(
-      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertices) * sizeof(float), (void *)(2 * sizeof(float))));
+  GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(2 * sizeof(float))));
 
   // unbind
   GL_CALL(glBindVertexArray(0));
   GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
-  GL_CALL(
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)); // unbind EBO after VAO, since VAO will remember the last binded EBO.
+  GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)); // unbind EBO after VAO
 
   uint shader = shader_from_file("shaders/basic.glsl");
   GL_CALL(glUseProgram(shader));
