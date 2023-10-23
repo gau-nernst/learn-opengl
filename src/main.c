@@ -74,11 +74,6 @@ int main(void) {
       2, 3, 0, //
   };
 
-  float texture_coords[] = {
-      0.0f, 0.0f, //
-      1.0f, 0.0f, //
-      0.5f, 1.0f, //
-  };
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); // not sure why it's S and T
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -125,14 +120,22 @@ int main(void) {
 
   uint shader = shader_from_file("shaders/basic.glsl");
   GL_CALL(glUseProgram(shader));
+  uint rotation2d_location;
+  GL_CALL(rotation2d_location = glGetUniformLocation(shader, "rotation2d"));
 
   while (!glfwWindowShouldClose(window)) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, 1);
 
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
-
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    float angle = glfwGetTime();
+    float rotation2d[] = {
+        cos(angle), -sin(angle), //
+        sin(angle), cos(angle),  //
+    };
+    GL_CALL(glUniformMatrix2fv(rotation2d_location, 1, GL_TRUE, rotation2d));
 
     GL_CALL(glBindVertexArray(VAO)); // this will also bind EBO
     // GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
