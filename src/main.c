@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #define STBI_ASSERT(x)
 #define STB_IMAGE_IMPLEMENTATION
@@ -14,15 +15,18 @@ typedef unsigned int uint;
   if (!(condition)) {                                                                                                  \
     fprintf(stderr, ##__VA_ARGS__);                                                                                    \
     fprintf(stderr, "\n");                                                                                             \
-    return 0;                                                                                                          \
+    raise(SIGTRAP);                                                                                                    \
   }
 
 #define GL_CALL(x)                                                                                                     \
   {                                                                                                                    \
+    while (glGetError())                                                                                               \
+      ;                                                                                                                \
     x;                                                                                                                 \
-    GLenum error = GL_NO_ERROR;                                                                                        \
+    uint error = GL_NO_ERROR;                                                                                          \
     while ((error = glGetError())) {                                                                                   \
-      fprintf(stderr, "[OpenGL Error] (%X)\n", error);                                                                 \
+      fprintf(stderr, "[OpenGL Error 0x%.04X] %s line %d\n", error, #x, __LINE__);                                     \
+      break;                                                                                                           \
     }                                                                                                                  \
     ASSERT(error == GL_NO_ERROR, "");                                                                                  \
   }
@@ -30,6 +34,7 @@ typedef unsigned int uint;
 typedef struct Vertex {
   float position[2];
   float color[3];
+  float texture_coord[2];
 } Vertex;
 
 static uint compile_shader(uint type, const char *source);
@@ -59,9 +64,14 @@ int main(void) {
   }
 
   Vertex vertices[] = {
-      -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, //
-      -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, //
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, //
+      -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, //
+      -0.5f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, //
+      0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 1.0f, 1.0f, //
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, //
+  };
+  uint indices[] = {
+      0, 1, 2, //
+      2, 3, 0, //
   };
 
   float texture_coords[] = {
@@ -73,8 +83,18 @@ int main(void) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // upsample cannot use mipmap
+  int width, height, n_channels;
+  unsigned char *texture_data = stbi_load("wall.jpg", &width, &height, &n_channels, 0);
+  ASSERT(texture_data != NULL, "Failed to load image");
 
-  uint VAO, VBO;
+  uint texture;
+  GL_CALL(glGenTextures(1, &texture));
+  GL_CALL(glBindTexture(GL_TEXTURE_2D, texture));
+  GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture_data));
+  GL_CALL(glGenerateMipmap(GL_TEXTURE_2D));
+  stbi_image_free(texture_data);
+
+  uint VAO, VBO, EBO;
   GL_CALL(glGenVertexArrays(1, &VAO));
   GL_CALL(glBindVertexArray(VAO)); // bind VAO first. this stores glVertexAttribPointer() info.
 
@@ -89,6 +109,14 @@ int main(void) {
   // color attribute
   GL_CALL(glEnableVertexAttribArray(1));
   GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(2 * sizeof(float))));
+
+  // texture attribute
+  GL_CALL(glEnableVertexAttribArray(2));
+  GL_CALL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)((2 + 3) * sizeof(float))));
+
+  GL_CALL(glGenBuffers(1, &EBO));
+  GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+  GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
 
   // unbind
   GL_CALL(glBindVertexArray(0));
@@ -107,8 +135,8 @@ int main(void) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     GL_CALL(glBindVertexArray(VAO)); // this will also bind EBO
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
-    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    // GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+    glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
     GL_CALL(glBindVertexArray(0));
 
