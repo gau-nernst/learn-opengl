@@ -2,9 +2,114 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-static unsigned int CompileShader(unsigned int type, const char *source) {
-  unsigned int id = glCreateShader(type);
+typedef unsigned int uint;
+
+#define assert(condition, ...)                                                                                         \
+  if (!(condition)) {                                                                                                  \
+    fprintf(stderr, ##__VA_ARGS__);                                                                                    \
+    fprintf(stderr, "\n");                                                                                             \
+    return 0;                                                                                                          \
+  }
+
+#define GL_CALL(x)                                                                                                     \
+  {                                                                                                                    \
+    x;                                                                                                                 \
+    GLenum error = GL_NO_ERROR;                                                                                        \
+    while ((error = glGetError())) {                                                                                   \
+      fprintf(stderr, "[OpenGL Error] (%X)\n", error);                                                                 \
+    }                                                                                                                  \
+    assert(error == GL_NO_ERROR, "");                                                                                  \
+  }
+
+typedef struct Vertex {
+  float position[2];
+  float color[3];
+} Vertex;
+
+static uint compile_shader(uint type, const char *source);
+static uint create_shader_program(const char *vertexShader, const char *fragmentShader);
+static uint shader_from_file(const char *path);
+
+int main(void) {
+  if (!glfwInit())
+    return -1;
+
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // for macOS
+#endif
+
+  GLFWwindow *window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+  if (!window) {
+    glfwTerminate();
+    return -1;
+  }
+  glfwMakeContextCurrent(window);
+
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    return -1;
+  }
+
+  Vertex vertices[] = {
+      -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, //
+      -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, //
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, //
+  };
+
+  uint VAO, VBO;
+  GL_CALL(glGenVertexArrays(1, &VAO));
+  GL_CALL(glBindVertexArray(VAO)); // bind VAO first. this stores glVertexAttribPointer() info.
+
+  GL_CALL(glGenBuffers(1, &VBO));
+  GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+  GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
+
+  // position attribute
+  GL_CALL(glEnableVertexAttribArray(0));
+  GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0));
+
+  // color attribute
+  GL_CALL(glEnableVertexAttribArray(1));
+  GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(2 * sizeof(float))));
+
+  // unbind
+  GL_CALL(glBindVertexArray(0));
+  GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+  GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)); // unbind EBO after VAO
+
+  uint shader = shader_from_file("shaders/basic.glsl");
+  GL_CALL(glUseProgram(shader));
+
+  while (!glfwWindowShouldClose(window)) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+      glfwSetWindowShouldClose(window, 1);
+
+    GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
+
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    GL_CALL(glBindVertexArray(VAO)); // this will also bind EBO
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    GL_CALL(glBindVertexArray(0));
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+
+  glDeleteProgram(shader);
+
+  glfwTerminate();
+  return 0;
+}
+
+static uint compile_shader(uint type, const char *source) {
+  uint id = glCreateShader(type);
   glShaderSource(id, 1, &source, NULL);
   glCompileShader(id);
 
@@ -25,97 +130,53 @@ static unsigned int CompileShader(unsigned int type, const char *source) {
   return id;
 }
 
-static unsigned int CreateShader(const char *vertexShader, const char *fragmentShader) {
-  unsigned int program = glCreateProgram();
-  unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-  unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
+static uint create_shader_program(const char *vertexShader, const char *fragmentShader) {
+  uint program;
+  GL_CALL(program = glCreateProgram());
 
-  glAttachShader(program, vs);
-  glAttachShader(program, fs);
-  glLinkProgram(program);
-  glValidateProgram(program);
+  uint vs = compile_shader(GL_VERTEX_SHADER, vertexShader);
+  uint fs = compile_shader(GL_FRAGMENT_SHADER, fragmentShader);
 
-  glDeleteShader(vs);
-  glDeleteShader(fs);
+  GL_CALL(glAttachShader(program, vs));
+  GL_CALL(glAttachShader(program, fs));
+  GL_CALL(glLinkProgram(program));
+  GL_CALL(glValidateProgram(program));
 
+  GL_CALL(glDeleteShader(vs));
+  GL_CALL(glDeleteShader(fs));
   return program;
 }
 
-int main(void) {
-  GLFWwindow *window;
+static uint shader_from_file(const char *path) {
+  FILE *f = fopen(path, "r");
+  assert(f != NULL, "Unable to open %s\n", path);
+  assert(fseek(f, 0, SEEK_END) == 0, "Unable to seek to end");
+  long size = ftell(f);
+  assert(size != -1, "Error");
 
-  /* Initialize the library */
-  if (!glfwInit())
-    return -1;
+  char *source = malloc(sizeof(char) * (size + 1));
+  assert(fseek(f, 0, SEEK_SET) == 0, "Unable to seek to start");
+  fread(source, sizeof(char), size, f);
+  source[size + 1] = '\0';
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // for macOS
-#endif
+  char vertex_tag[] = "#shader vertex\n";
+  char *vertex = strstr(source, vertex_tag);
+  assert(vertex != NULL, "Can't find vertex shader in shader file");
 
-  /* Create a windowed mode window and its OpenGL context */
-  window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-  if (!window) {
-    glfwTerminate();
-    return -1;
-  }
+  char fragment_tag[] = "#shader fragment\n";
+  char *fragment = strstr(source, fragment_tag);
+  assert(fragment != NULL, "Can't find fragment shader in shader file");
 
-  /* Make the window's context current */
-  glfwMakeContextCurrent(window);
+  memset(vertex, 0, sizeof(vertex_tag) - 1);
+  vertex += sizeof(vertex_tag) - 1;
 
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    return 1;
-  }
+  memset(fragment, 0, sizeof(fragment_tag) - 1);
+  fragment += sizeof(fragment_tag) - 1;
 
-  float positions[] = {
-      -0.5f, -0.5f, //
-      0.0f,  0.0f,  //
-      0.5f,  -0.5f,
-  };
+  printf("=== VERTEX SHADER ===\n%s\n", vertex);
+  printf("=== FRAGMENT SHADER ===\n%s\n", fragment);
 
-  unsigned int buffer, vao;
-  glGenBuffers(1, &buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, buffer);
-  glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
-
-  // using index=0
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-
-  char *vertexShader = "#version 330 core\n"
-                       "\n"
-                       "layout(location=0) in vec4 position;" // index of the attribute = 0
-                       "void main() {\n"
-                       "  gl_Position = position;\n"
-                       "}\n";
-  char *fragmentShader = "#version 330 core\n"
-                         "\n"
-                         "layout(location=0) out vec4 color;" // index of the attribute = 0
-                         "void main() {\n"
-                         "  color = vec4(1.0, 0.0, 0.0, 1.0);\n"
-                         "}\n";
-  unsigned int shader = CreateShader(vertexShader, fragmentShader);
-  glUseProgram(shader);
-
-  /* Loop until the user closes the window */
-  while (!glfwWindowShouldClose(window)) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-      glfwSetWindowShouldClose(window, 1);
-
-    /* Render here */
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    /* Swap front and back buffers */
-    glfwSwapBuffers(window);
-
-    /* Poll for and process events */
-    glfwPollEvents();
-  }
-
-  glfwTerminate();
-  return 0;
+  uint program = create_shader_program(vertex, fragment);
+  free(source);
+  return program;
 }
