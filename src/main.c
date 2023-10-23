@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +33,7 @@ typedef unsigned int uint;
   }
 
 typedef struct Vertex {
-  float position[2];
+  float position[3];
   float color[3];
   float texture_coord[2];
 } Vertex;
@@ -64,10 +65,10 @@ int main(void) {
   }
 
   Vertex vertices[] = {
-      -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, //
-      -0.5f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, //
-      0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 1.0f, 1.0f, //
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, //
+      -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, //
+      -0.5f, 0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, //
+      0.5f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, //
+      0.5f,  -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, //
   };
   uint indices[] = {
       0, 1, 2, //
@@ -99,15 +100,15 @@ int main(void) {
 
   // position attribute
   GL_CALL(glEnableVertexAttribArray(0));
-  GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0));
+  GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, position)));
 
   // color attribute
   GL_CALL(glEnableVertexAttribArray(1));
-  GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(2 * sizeof(float))));
+  GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, color)));
 
   // texture attribute
   GL_CALL(glEnableVertexAttribArray(2));
-  GL_CALL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)((2 + 3) * sizeof(float))));
+  GL_CALL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, texture_coord)));
 
   GL_CALL(glGenBuffers(1, &EBO));
   GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
