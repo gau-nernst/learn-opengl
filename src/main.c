@@ -41,6 +41,7 @@ typedef struct Vertex {
 static uint compile_shader(uint type, const char *source);
 static uint create_shader_program(const char *vertexShader, const char *fragmentShader);
 static uint shader_from_file(const char *path);
+static uint get_uniform_location(const char *name, uint shader);
 
 int main(void) {
   if (!glfwInit())
@@ -121,8 +122,32 @@ int main(void) {
 
   uint shader = shader_from_file("shaders/basic.glsl");
   GL_CALL(glUseProgram(shader));
-  uint rotation2d_location;
-  GL_CALL(rotation2d_location = glGetUniformLocation(shader, "rotation2d"));
+  uint model = get_uniform_location("model", shader);
+  uint view = get_uniform_location("view", shader);
+  uint projection = get_uniform_location("projection", shader);
+
+  float view_data[] = {
+      1.0f, 0.0f, 0.0f, 0.0f,  //
+      0.0f, 1.0f, 0.0f, 0.0f,  //
+      0.0f, 0.0f, 1.0f, -3.0f, //
+      0.0f, 0.0f, 0.0f, 1.0f,  //
+  };
+  GL_CALL(glUniformMatrix4fv(view, 1, GL_TRUE, view_data));
+  float n = 0.1f, f = 100.0f, t = 0.1f, r = t / 480.0f * 640.0f;
+  // clang-format off
+  float projection_data[] = {
+      n/r,  0.0f, 0.0f,         0.0f, //
+      0.0f, n/t,  0.0f,         0.0f, //
+      0.0f, 0.0f, -(f+n)/(f-n), -2*f*n/(f-n), //
+      0.0f, 0.0f, -1.0f,        0.0f, //
+
+  //     1/r,  0.0f, 0.0f,         0.0f, //
+  //     0.0f, 1/t,  0.0f,         0.0f, //
+  //     0.0f, 0.0f, -2/(f-n), -(f+n)/(f-n), //
+  //     0.0f, 0.0f, 0.0f,        1.0f, //
+  };
+  // clang-format on
+  GL_CALL(glUniformMatrix4fv(projection, 1, GL_TRUE, projection_data));
 
   while (!glfwWindowShouldClose(window)) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -132,11 +157,18 @@ int main(void) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     float angle = glfwGetTime();
-    float rotation2d[] = {
-        cos(angle), -sin(angle), //
-        sin(angle), cos(angle),  //
+    // float angle = -55.0f / 180.0f * 3.14159f;
+    float model_data[] = {
+        // cos(angle), -sin(angle), 0, 0.2,  //
+        // sin(angle), cos(angle),  0, -0.1, //
+        // 0,          0,           1, 0,    //
+        // 0,          0,           0, 1,    //
+        1.0f, 0.0f,       0.0f,        0.0f, //
+        0.0f, cos(angle), -sin(angle), 0.0f, //
+        0.0f, sin(angle), cos(angle),  0.0f, //
+        0.0f, 0.0f,       0.0f,        1.0f, //
     };
-    GL_CALL(glUniformMatrix2fv(rotation2d_location, 1, GL_TRUE, rotation2d));
+    GL_CALL(glUniformMatrix4fv(model, 1, GL_TRUE, model_data));
 
     GL_CALL(glBindVertexArray(VAO)); // this will also bind EBO
     // GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
@@ -225,4 +257,11 @@ static uint shader_from_file(const char *path) {
   uint program = create_shader_program(vertex, fragment);
   free(source);
   return program;
+}
+
+static uint get_uniform_location(const char *name, uint shader) {
+  uint location;
+  GL_CALL(location = glGetUniformLocation(shader, name));
+  ASSERT(location != -1, "%s not found", name);
+  return location;
 }
